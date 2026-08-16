@@ -1,17 +1,15 @@
 import { useState } from 'react'
-import { analyzeResume, type AnalysisReport } from './api/client'
-
-type Step = 'upload' | 'jd' | 'report'
+import { analyzeResume } from './api/client'
 
 const STEP_LABELS = ['Upload resume', 'Paste job description', 'View report']
 
 export default function App() {
-  const [step, setStep] = useState<Step>('upload')
-  const [resume, setResume] = useState<File | null>(null)
+  const [step, setStep] = useState('upload')
+  const [resume, setResume] = useState(null)
   const [jd, setJd] = useState('')
-  const [report, setReport] = useState<AnalysisReport | null>(null)
+  const [report, setReport] = useState(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
 
   async function runAnalysis() {
     if (!resume) return

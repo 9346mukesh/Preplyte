@@ -25,7 +25,7 @@ support, instead of hallucinating.
 
 | Layer       | Technology                                                     |
 | ----------- | -------------------------------------------------------------- |
-| Frontend    | React + Vite + TypeScript                                      |
+| Frontend    | React + Vite (JavaScript)                                     |
 | Backend     | FastAPI (Python)                                               |
 | LLM         | Groq – Llama 3.3 70B via LangChain                             |
 | Embeddings  | HuggingFace sentence-transformers (bge-small-en-v1.5)          |
@@ -54,8 +54,8 @@ support, instead of hallucinating.
 │   └── tests/
 ├── frontend/               # React + Vite app
 │   └── src/
-│       ├── api/client.ts   # typed client for /api/analyze
-│       └── App.tsx         # upload → paste JD → report workflow
+│       ├── api/client.js   # client for /api/analyze
+│       └── App.jsx         # upload → paste JD → report workflow
 ├── docs/                   # BRD (markdown + original docx)
 ├── docker-compose.yml
 └── .github/workflows/ci.yml
