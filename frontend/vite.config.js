@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8000',
+      // Point at a different backend with VITE_API_PROXY=http://localhost:PORT
+      '/api': process.env.VITE_API_PROXY || 'http://localhost:8000',
     },
   },
 })
