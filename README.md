@@ -41,7 +41,7 @@ support, instead of hallucinating.
 │   ├── app/
 │   │   ├── api/            # HTTP routes (/api/analyze, /api/health)
 │   │   ├── services/
-│   │   │   ├── ingestion/  # parsers + section-aware chunking  (Day 1-2)
+│   │   │   ├── ingestion/  # ingest_resume: PDF/DOCX → section-tagged chunks (Day 1-2)
 │   │   │   ├── jd_extractor.py   # structured JD requirements   (Day 2)
 │   │   │   ├── embeddings.py     # embedding model wrapper      (Day 3)
 │   │   │   ├── vectorstore.py    # FAISS abstraction            (Day 3)

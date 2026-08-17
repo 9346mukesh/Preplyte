@@ -64,15 +64,28 @@ def extract_text_from_docx(content: bytes) -> str:
     return "\n".join(paragraphs)
 
 
-def extract_text_from_pdf(content: bytes) -> str:
-    """Extract text from a PDF, page by page."""
+def extract_text_from_pdf(content: bytes, max_pages: Optional[int] = None) -> str:
+    """Extract text from a PDF, page by page (BRD FR-01).
+
+    When ``max_pages`` is set, resumes longer than the limit are rejected
+    with a clear error rather than silently truncated (BRD NFR Reliability;
+    the limit is MAX_RESUME_PAGES, default 5).
+    """
     try:
         import pdfplumber
     except ImportError as exc:  # pragma: no cover
         raise ParseError("pdfplumber is not installed (see backend/requirements.txt)") from exc
     try:
         with pdfplumber.open(io.BytesIO(content)) as pdf:
+            if max_pages is not None and len(pdf.pages) > max_pages:
+                raise ParseError(
+                    f"Resume has {len(pdf.pages)} pages, which exceeds the "
+                    f"{max_pages}-page limit (MAX_RESUME_PAGES). "
+                    "Please upload a shorter resume."
+                )
             pages = [page.extract_text() or "" for page in pdf.pages]
+    except ParseError:
+        raise
     except Exception as exc:
         raise ParseError("Unable to read PDF file") from exc
     return "\n".join(pages).strip()

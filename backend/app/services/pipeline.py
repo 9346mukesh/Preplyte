@@ -18,13 +18,7 @@ import time
 
 from ..config import get_settings
 from ..schemas import Report
-from .ingestion.chunker import chunk_document
-from .ingestion.parsers import (
-    ParseError,
-    extract_sections,
-    extract_text_from_docx,
-    extract_text_from_pdf,
-)
+from .ingestion import ingest_resume
 from .jd_extractor import extract_requirements
 
 
@@ -34,16 +28,15 @@ def run_analysis(content: bytes, filename: str, jd_text: str) -> Report:
     started = time.perf_counter()
     warnings: list = []
 
-    # Stage 1: parse resume (FR-01)
-    if filename.lower().endswith(".pdf"):
-        raw_text = extract_text_from_pdf(content)
-    elif filename.lower().endswith((".docx", ".doc")):
-        raw_text = extract_text_from_docx(content)
-    else:
-        raise ParseError(f"Unsupported file type: {filename!r} (expected PDF or DOCX)")
-
-    sections = extract_sections(raw_text)
-    chunks = chunk_document(sections, settings.chunk_size, settings.chunk_overlap)
+    # Stage 1: parse resume into section-tagged chunks (FR-01)
+    chunks = ingest_resume(
+        content,
+        filename,
+        chunk_size=settings.chunk_size,
+        overlap=settings.chunk_overlap,
+        max_pages=settings.max_resume_pages,
+    )
+    del chunks  # consumed by the Day 3 retrieval stage
 
     # Stage 2: structured JD requirements (FR-02)
     requirements = extract_requirements(jd_text)
