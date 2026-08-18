@@ -43,9 +43,9 @@ support, instead of hallucinating.
 │   │   ├── services/
 │   │   │   ├── ingestion/  # ingest_resume: PDF/DOCX → section-tagged chunks (Day 1-2)
 │   │   │   ├── jd_extractor.py   # structured JD requirements   (Day 2)
-│   │   │   ├── embeddings.py     # embedding model wrapper      (Day 3)
-│   │   │   ├── vectorstore.py    # FAISS abstraction            (Day 3)
-│   │   │   ├── retrieval.py      # top-k + threshold + BM25     (Day 3)
+│   │   │   ├── embeddings.py     # embedding model wrapper      (Day 3 ✓)
+│   │   │   ├── vectorstore.py    # FAISS abstraction            (Day 3 ✓)
+│   │   │   ├── retrieval.py      # top-k + threshold + BM25     (Day 3 ✓)
 │   │   │   ├── analyzer.py       # grounded classification      (Day 4)
 │   │   │   ├── questions.py      # interview questions          (Day 5)
 │   │   │   └── pipeline.py       # orchestrator (BRD §11)

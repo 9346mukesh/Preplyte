@@ -3,9 +3,9 @@
 Stages:
   1. parse resume (FR-01)                 -- Day 1/2 (implemented)
   2. extract JD requirements (FR-02)      -- Day 2 (implemented, heuristics)
-  3. embed chunks + requirements (FR-03)  -- Day 3
-  4. store resume embeddings (FR-04)      -- Day 3
-  5. top-k retrieval + threshold (FR-07)  -- Day 3
+  3. embed chunks + requirements (FR-03)  -- Day 3 (implemented)
+  4. store resume embeddings (FR-04)      -- Day 3 (implemented)
+  5. top-k retrieval + threshold (FR-07)  -- Day 3 (implemented)
   6. grounded classification (FR-05/06)   -- Day 4
   7. verification pass (FR-06)            -- Day 4
   8. interview questions (FR-08)          -- Day 5
@@ -18,8 +18,11 @@ import time
 
 from ..config import get_settings
 from ..schemas import Report
+from .embeddings import EmbeddingService
 from .ingestion import ingest_resume
 from .jd_extractor import extract_requirements
+from .retrieval import retrieve_per_requirement
+from .vectorstore import build_vector_store
 
 
 def run_analysis(content: bytes, filename: str, jd_text: str) -> Report:
@@ -36,18 +39,31 @@ def run_analysis(content: bytes, filename: str, jd_text: str) -> Report:
         overlap=settings.chunk_overlap,
         max_pages=settings.max_resume_pages,
     )
-    del chunks  # consumed by the Day 3 retrieval stage
 
     # Stage 2: structured JD requirements (FR-02)
     requirements = extract_requirements(jd_text)
+
+    # Stage 3-5: embeddings + vector store + retrieval (FR-03, FR-04, FR-07)
+    embeddings = EmbeddingService()
+    vector_store = build_vector_store()
+    retrieval_results = retrieve_per_requirement(
+        requirements=requirements,
+        chunks=chunks,
+        embeddings=embeddings,
+        vector_store=vector_store,
+        top_k=settings.top_k,
+        threshold=settings.similarity_threshold,
+        use_keyword_fallback=True,
+    )
     warnings.append(
-        "Stages 3-8 (embeddings, retrieval, grounded analysis, questions) "
-        "land on Days 3-5 of the build plan."
+        "Stages 6-8 (grounded analysis, verification, questions) "
+        "land on Days 4-5 of the build plan."
     )
 
     latency_ms = (time.perf_counter() - started) * 1000.0
     return Report(
         requirements=requirements,
+        retrieval=retrieval_results,
         latency_ms=latency_ms,
         warnings=warnings,
     )
