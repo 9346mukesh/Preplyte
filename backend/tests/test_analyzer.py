@@ -1,10 +1,13 @@
-"""Day 4 tests: grounded classification and verification pass.
+"""Day 4 tests: grounded classification, verification pass, and LLM integration.
 
 Tests:
-- classify_requirements: PRESENT / PARTIAL / MISSING classifications
+- classify_requirements: PRESENT / PARTIAL / MISSING classifications (rule-based)
 - verification_pass: evidence validation, INSUFFICIENT_EVIDENCE downgrade
+- LLM classification: mock Groq response parsing, fallback on error
 - End-to-end pipeline with real embeddings and classification
 """
+
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -19,13 +22,14 @@ from app.schemas import (
 )
 from app.services.analyzer import (
     PRESENT_THRESHOLD,
+    _parse_llm_response,
     classify_requirements,
     verification_pass,
 )
 
 
 # ---------------------------------------------------------------------------
-# classify_requirements tests (FR-05 / FR-06)
+# classify_requirements tests (FR-05 / FR-06) — rule-based fallback
 # ---------------------------------------------------------------------------
 
 
@@ -199,6 +203,155 @@ class TestVerificationPass:
         )
         results = verification_pass([analysis])
         assert results[0].classification == Classification.INSUFFICIENT_EVIDENCE
+
+
+# ---------------------------------------------------------------------------
+# LLM response parsing tests
+# ---------------------------------------------------------------------------
+
+
+class TestLLMResponseParsing:
+    """Test JSON extraction from various LLM response formats."""
+
+    def test_parse_clean_json(self):
+        """Direct JSON parse should work."""
+        response = '{"classification": "present", "evidence_citation": "Python, FastAPI", "confidence_note": "Strong match"}'
+        parsed = _parse_llm_response(response)
+        assert parsed is not None
+        assert parsed["classification"] == "present"
+        assert parsed["evidence_citation"] == "Python, FastAPI"
+
+    def test_parse_markdown_fenced_json(self):
+        """JSON inside markdown code fences should be extracted."""
+        response = '```json\n{"classification": "partial", "evidence_citation": "Some evidence", "confidence_note": "Partial match"}\n```'
+        parsed = _parse_llm_response(response)
+        assert parsed is not None
+        assert parsed["classification"] == "partial"
+
+    def test_parse_with_surrounding_text(self):
+        """JSON embedded in explanatory text should be found."""
+        response = 'Based on the analysis, here is the result:\n{"classification": "missing", "evidence_citation": null, "confidence_note": "No match"}\nThis is my conclusion.'
+        parsed = _parse_llm_response(response)
+        assert parsed is not None
+        assert parsed["classification"] == "missing"
+
+    def test_parse_invalid_json(self):
+        """Invalid JSON should return None."""
+        parsed = _parse_llm_response("This is not JSON at all")
+        assert parsed is None
+
+
+# ---------------------------------------------------------------------------
+# LLM classification integration tests
+# ---------------------------------------------------------------------------
+
+
+class TestLLMClassification:
+    """Test LLM-based classification with mocked Groq API."""
+
+    def test_llm_present_classification(self):
+        """Mocked LLM returning 'present' should produce PRESENT result."""
+        mock_response = MagicMock()
+        mock_response.content = '{"classification": "present", "evidence_citation": "5 years of Python experience", "confidence_note": "Direct match"}'
+
+        with patch("langchain_groq.ChatGroq") as MockChatGroq:
+            mock_llm = MagicMock()
+            mock_llm.invoke.return_value = mock_response
+            MockChatGroq.return_value = mock_llm
+
+            with patch("app.services.analyzer.get_settings") as mock_settings:
+                mock_settings.return_value.groq_api_key = "test-key"
+                mock_settings.return_value.llm_model = "llama-3.3-70b-versatile"
+
+                chunks = [
+                    ResumeChunk(chunk_id="s:0", source_section=Section.SKILLS, raw_text="Python, FastAPI")
+                ]
+                reqs = [JDRequirement(requirement_id="r1", requirement_text="Python experience")]
+                retrieval = [
+                    RetrievalResult(
+                        requirement_id="r1",
+                        retrieved_chunk_ids=["s:0"],
+                        similarity_scores=[0.85],
+                        threshold_pass=True,
+                    )
+                ]
+                results = classify_requirements(reqs, retrieval, chunks)
+
+                assert results[0].classification == Classification.PRESENT
+                assert results[0].evidence_citation == "5 years of Python experience"
+
+    def test_llm_missing_enforces_no_citation(self):
+        """LLM returning 'present' with no citation -> INSUFFICIENT_EVIDENCE (FR-06)."""
+        mock_response = MagicMock()
+        mock_response.content = '{"classification": "present", "evidence_citation": null, "confidence_note": "Looks good"}'
+
+        with patch("langchain_groq.ChatGroq") as MockChatGroq:
+            mock_llm = MagicMock()
+            mock_llm.invoke.return_value = mock_response
+            MockChatGroq.return_value = mock_llm
+
+            with patch("app.services.analyzer.get_settings") as mock_settings:
+                mock_settings.return_value.groq_api_key = "test-key"
+                mock_settings.return_value.llm_model = "llama-3.3-70b-versatile"
+
+                chunks = [ResumeChunk(chunk_id="s:0", source_section=Section.SKILLS, raw_text="Python")]
+                reqs = [JDRequirement(requirement_id="r1", requirement_text="Python")]
+                retrieval = [
+                    RetrievalResult(
+                        requirement_id="r1",
+                        retrieved_chunk_ids=["s:0"],
+                        similarity_scores=[0.80],
+                        threshold_pass=True,
+                    )
+                ]
+                results = classify_requirements(reqs, retrieval, chunks)
+
+                assert results[0].classification == Classification.INSUFFICIENT_EVIDENCE
+
+    def test_fallback_to_rule_based_on_llm_error(self):
+        """LLM exception should fall back to rule-based classification."""
+        with patch("langchain_groq.ChatGroq") as MockChatGroq:
+            mock_llm = MagicMock()
+            mock_llm.invoke.side_effect = Exception("API error")
+            MockChatGroq.return_value = mock_llm
+
+            with patch("app.services.analyzer.get_settings") as mock_settings:
+                mock_settings.return_value.groq_api_key = "test-key"
+                mock_settings.return_value.llm_model = "llama-3.3-70b-versatile"
+
+                chunks = [ResumeChunk(chunk_id="s:0", source_section=Section.SKILLS, raw_text="Python")]
+                reqs = [JDRequirement(requirement_id="r1", requirement_text="Python")]
+                retrieval = [
+                    RetrievalResult(
+                        requirement_id="r1",
+                        retrieved_chunk_ids=["s:0"],
+                        similarity_scores=[0.85],
+                        threshold_pass=True,
+                    )
+                ]
+                results = classify_requirements(reqs, retrieval, chunks)
+
+                # Should fall back to rule-based PRESENT
+                assert results[0].classification == Classification.PRESENT
+
+    def test_no_api_key_uses_rule_based(self):
+        """Without GROQ_API_KEY, should use rule-based classification."""
+        with patch("app.services.analyzer.get_settings") as mock_settings:
+            mock_settings.return_value.groq_api_key = ""
+
+            chunks = [ResumeChunk(chunk_id="s:0", source_section=Section.SKILLS, raw_text="Python")]
+            reqs = [JDRequirement(requirement_id="r1", requirement_text="Python")]
+            retrieval = [
+                RetrievalResult(
+                    requirement_id="r1",
+                    retrieved_chunk_ids=["s:0"],
+                    similarity_scores=[0.85],
+                    threshold_pass=True,
+                )
+            ]
+            results = classify_requirements(reqs, retrieval, chunks)
+
+            assert results[0].classification == Classification.PRESENT
 
 
 # ---------------------------------------------------------------------------
