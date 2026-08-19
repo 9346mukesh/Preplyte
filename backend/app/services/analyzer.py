@@ -45,23 +45,29 @@ based on their resume content.
 
 ## Instructions
 Classify this requirement as one of:
-- **present**: The resume clearly demonstrates this skill/experience. The candidate has direct, relevant experience.
-- **partial**: The resume shows some related experience but not a complete match. The candidate has transferable or adjacent skills.
+- **present**: The resume clearly demonstrates this skill/experience with concrete evidence (projects, work experience, specific achievements).
+- **partial**: The resume shows related experience but not a complete match (transferable skills, adjacent domain).
 - **missing**: The resume does not contain relevant content for this requirement.
-- **insufficient_evidence**: The retrieved excerpts are too vague or unrelated to make a confident classification.
+- **insufficient_evidence**: The retrieved excerpts do not semantically align with the requirement, OR they are just a list of keywords without context.
 
-## Rules (CRITICAL)
-1. You MUST cite the specific text from the resume excerpts that supports your classification.
-2. If classifying as "present" or "partial", the evidence_citation MUST be a direct quote from the excerpts above.
-3. If you cannot find supporting evidence, classify as "missing" or "insufficient_evidence".
-4. Be precise: "Python experience" is present if the resume mentions Python projects; partial if it mentions programming but not Python specifically.
+## Rules (CRITICAL - read carefully)
+1. **Semantic alignment required**: The evidence must actually address what the requirement asks. A skills list does NOT prove "collaboration experience" or "shipping production features".
+2. **Context matters**: "Python, FastAPI, Docker" is NOT evidence of "collaborating with senior engineers". Evidence must show the BEHAVIOR or EXPERIENCE, not just related keywords.
+3. **Direct quotes only**: If classifying as "present" or "partial", the evidence_citation MUST be a direct quote showing the candidate actually performed the required activity.
+4. **Keyword lists are insufficient**: If the evidence is just a comma-separated list of technologies without project context, classify as "insufficient_evidence" unless the requirement is literally "knows Python".
+5. **When in doubt, abstain**: It's better to classify as "insufficient_evidence" than to guess.
+
+## Examples
+- JD: "Collaborating with senior engineers" → Evidence: "Python, Docker, SQL" → **insufficient_evidence** (no collaboration context)
+- JD: "Collaborating with senior engineers" → Evidence: "Worked with senior team to ship v2.0 API" → **present** (direct collaboration evidence)
+- JD: "Python experience" → Evidence: "Python, FastAPI, PostgreSQL" → **present** (direct skill match)
 
 ## Response Format
 Respond with ONLY a JSON object (no markdown, no explanation outside the JSON):
 {{
   "classification": "present" | "partial" | "missing" | "insufficient_evidence",
-  "evidence_citation": "direct quote from resume excerpts, or null if missing",
-  "confidence_note": "brief explanation of your reasoning"
+  "evidence_citation": "direct quote from resume excerpts that PROVES the requirement, or null if missing",
+  "confidence_note": "brief explanation of why this classification fits"
 }}"""
 
 

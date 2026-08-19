@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     similarity_threshold: float = 0.45
 
     # Chunking (BRD section 12.2)
-    chunk_size: int = 512
-    chunk_overlap: int = 64
+    max_chunk_tokens: int = 80
+    overlap_sentences: int = 1
 
     # Limits (BRD NFR: Scalability)
     max_resume_pages: int = 5

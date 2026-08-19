@@ -36,8 +36,8 @@ def run_analysis(content: bytes, filename: str, jd_text: str) -> Report:
     chunks = ingest_resume(
         content,
         filename,
-        chunk_size=settings.chunk_size,
-        overlap=settings.chunk_overlap,
+        max_chunk_tokens=settings.max_chunk_tokens,
+        overlap_sentences=settings.overlap_sentences,
         max_pages=settings.max_resume_pages,
     )
 

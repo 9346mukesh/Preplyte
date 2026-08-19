@@ -125,12 +125,15 @@ class TestRetrievePerRequirement:
         assert results[0].threshold_pass is False
 
     def test_bm25_fallback_catches_exact_keywords(self):
-        """BM25 fallback should catch exact technical terms (BRD risk R-4)."""
+        """BM25 fallback should catch exact technical terms (BRD risk R-4).
+
+        Conservative fallback requires 2+ matching technical terms (3+ chars).
+        """
         chunks = [
-            ResumeChunk(chunk_id="skills:0", source_section=Section.SKILLS, raw_text="Kubernetes, Docker, Helm"),
+            ResumeChunk(chunk_id="skills:0", source_section=Section.SKILLS, raw_text="Kubernetes, Docker, Helm deployment"),
         ]
         requirements = [
-            JDRequirement(requirement_id="req:0", requirement_text="Kubernetes experience required", category=RequirementCategory.MUST_HAVE),
+            JDRequirement(requirement_id="req:0", requirement_text="Kubernetes and Docker experience", category=RequirementCategory.MUST_HAVE),
         ]
         embeddings = EmbeddingService()
         store = build_vector_store()

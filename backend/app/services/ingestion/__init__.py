@@ -33,15 +33,15 @@ __all__ = [
 def ingest_resume(
     content: bytes,
     filename: str,
-    chunk_size: Optional[int] = None,
-    overlap: Optional[int] = None,
+    max_chunk_tokens: Optional[int] = None,
+    overlap_sentences: Optional[int] = None,
     max_pages: Optional[int] = None,
 ) -> List[ResumeChunk]:
     """Parse a resume (PDF/DOCX) into section-tagged chunks (FR-01).
 
     The parser is selected from the file extension rather than the upload
     content-type header, so the file type cannot be spoofed. Values default
-    to the env-driven settings (CHUNK_SIZE, CHUNK_OVERLAP, MAX_RESUME_PAGES).
+    to the env-driven settings.
     """
     settings = get_settings()
     name = filename.lower()
@@ -63,6 +63,10 @@ def ingest_resume(
     sections = extract_sections(raw_text)
     return chunk_document(
         sections,
-        chunk_size=chunk_size if chunk_size is not None else settings.chunk_size,
-        overlap=overlap if overlap is not None else settings.chunk_overlap,
+        max_chunk_tokens=max_chunk_tokens
+        if max_chunk_tokens is not None
+        else settings.max_chunk_tokens,
+        overlap_sentences=overlap_sentences
+        if overlap_sentences is not None
+        else settings.overlap_sentences,
     )
