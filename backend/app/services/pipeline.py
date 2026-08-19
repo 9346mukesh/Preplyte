@@ -6,8 +6,8 @@ Stages:
   3. embed chunks + requirements (FR-03)  -- Day 3 (implemented)
   4. store resume embeddings (FR-04)      -- Day 3 (implemented)
   5. top-k retrieval + threshold (FR-07)  -- Day 3 (implemented)
-  6. grounded classification (FR-05/06)   -- Day 4
-  7. verification pass (FR-06)            -- Day 4
+  6. grounded classification (FR-05/06)   -- Day 4 (implemented)
+  7. verification pass (FR-06)            -- Day 4 (implemented)
   8. interview questions (FR-08)          -- Day 5
   9. structured report (FR-09)            -- Day 5
 """
@@ -18,6 +18,7 @@ import time
 
 from ..config import get_settings
 from ..schemas import Report
+from .analyzer import classify_requirements, verification_pass
 from .embeddings import EmbeddingService
 from .ingestion import ingest_resume
 from .jd_extractor import extract_requirements
@@ -55,15 +56,27 @@ def run_analysis(content: bytes, filename: str, jd_text: str) -> Report:
         threshold=settings.similarity_threshold,
         use_keyword_fallback=True,
     )
+
+    # Stage 6: grounded classification (FR-05, FR-06)
+    analyses = classify_requirements(
+        requirements=requirements,
+        retrieval=retrieval_results,
+        chunks=chunks,
+    )
+
+    # Stage 7: verification pass (FR-06) — re-check Present/Partial claims
+    analyses = verification_pass(analyses)
+
     warnings.append(
-        "Stages 6-8 (grounded analysis, verification, questions) "
-        "land on Days 4-5 of the build plan."
+        "Stages 8-9 (interview questions, report assembly) "
+        "land on Day 5 of the build plan."
     )
 
     latency_ms = (time.perf_counter() - started) * 1000.0
     return Report(
         requirements=requirements,
         retrieval=retrieval_results,
+        analyses=analyses,
         latency_ms=latency_ms,
         warnings=warnings,
     )

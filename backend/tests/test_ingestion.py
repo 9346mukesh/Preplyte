@@ -154,4 +154,4 @@ def test_run_analysis_pipeline_accepts_docx_and_jd():
     )
     assert report.latency_ms is not None
     assert any("FastAPI" in r.requirement_text for r in report.requirements)
-    assert any("Days 4-5" in w for w in report.warnings)
+    assert any("Day 5" in w for w in report.warnings)

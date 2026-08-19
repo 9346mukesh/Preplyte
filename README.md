@@ -46,7 +46,7 @@ support, instead of hallucinating.
 │   │   │   ├── embeddings.py     # embedding model wrapper      (Day 3 ✓)
 │   │   │   ├── vectorstore.py    # FAISS abstraction            (Day 3 ✓)
 │   │   │   ├── retrieval.py      # top-k + threshold + BM25     (Day 3 ✓)
-│   │   │   ├── analyzer.py       # grounded classification      (Day 4)
+│   │   │   ├── analyzer.py       # grounded classification      (Day 4 ✓)
 │   │   │   ├── questions.py      # interview questions          (Day 5)
 │   │   │   └── pipeline.py       # orchestrator (BRD §11)
 │   │   ├── config.py       # env-driven settings (swappable components)
